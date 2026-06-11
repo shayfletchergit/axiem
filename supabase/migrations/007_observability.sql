@@ -169,6 +169,7 @@ COMMENT ON FUNCTION mark_rebuild_finished IS
 -- Used by lib/replay.ts to flag that a full re-reduce is in progress.
 -- The UI must surface this state to prevent user confusion during replay.
 
+DROP FUNCTION IF EXISTS mark_replay_started;
 CREATE OR REPLACE FUNCTION mark_replay_started(
   p_user_id    UUID,
   p_account_id TEXT,
@@ -193,6 +194,7 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS mark_replay_finished;
 CREATE OR REPLACE FUNCTION mark_replay_finished(
   p_user_id                         UUID,
   p_account_id                      TEXT,
@@ -244,6 +246,7 @@ $$;
 --
 -- SECURITY DEFINER: health endpoint is called by authenticated service client.
 
+DROP FUNCTION IF EXISTS get_position_health;
 CREATE OR REPLACE FUNCTION get_position_health(p_user_id UUID)
 RETURNS TABLE (
   instrument                      TEXT,

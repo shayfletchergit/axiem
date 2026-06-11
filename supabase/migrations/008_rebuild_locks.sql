@@ -203,6 +203,7 @@ ALTER TABLE position_rebuild_state
 
 -- ── 6. mark_replay_started: update to set replay_status ──────────────────────
 
+DROP FUNCTION IF EXISTS mark_replay_started;
 CREATE OR REPLACE FUNCTION mark_replay_started(
   p_user_id    UUID,
   p_account_id TEXT,
@@ -257,6 +258,7 @@ $$;
 
 -- ── 8. mark_replay_finished: updated to set replay_status = completed ─────────
 
+DROP FUNCTION IF EXISTS mark_replay_finished;
 CREATE OR REPLACE FUNCTION mark_replay_finished(
   p_user_id                         UUID,
   p_account_id                      TEXT,
@@ -335,6 +337,7 @@ $$;
 -- A replay is STALE if replay_status = 'running' AND heartbeat > 2 min old.
 -- The function auto-detects this and includes it in the result.
 
+DROP FUNCTION IF EXISTS get_position_health;
 CREATE OR REPLACE FUNCTION get_position_health(p_user_id UUID)
 RETURNS TABLE (
   instrument                      TEXT,
