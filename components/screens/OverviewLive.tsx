@@ -93,38 +93,40 @@ export function OverviewLive({ onNavigate, current = "overview", userName = "" }
 
   if (loading && !resp) return <Centered>Loading your analytics…</Centered>;
   if (error && !resp) return <Centered tone={C.bad}>{error}</Centered>;
-  if (!resp || !resp.snapshot) return <Centered tone={C.t2}>{resp?.message ?? "No analytics yet."}</Centered>;
+  if (!resp) return <Centered>Loading your analytics…</Centered>;
 
-  const snap = resp.snapshot;
-  const safe = snap.behaviour;
-  const data = safe.data;
-  const ageS = Math.round(snap.system.staleness / 1000);
-  const unavailable = !data;
-  const calibrating = !!data && (snap.system.state === "CALIBRATING" || data.risk_score == null);
+  const snap = resp.snapshot;                       // null on first run / no trades
+  const safe = snap?.behaviour ?? null;
+  const data = safe?.data ?? null;
+  const firstRun = !snap;                            // no backend snapshot yet → calm "controlled" baseline
+  const systemState = snap?.system.state ?? "CALIBRATING";
+  const safety = safe?.safety ?? "OK";
+  const ageS = snap ? Math.round(snap.system.staleness / 1000) : null;
+  const unavailable = !data && systemState === "DISCONNECTED";
+  const calibrating = !firstRun && !unavailable && (!data || systemState === "CALIBRATING" || (data != null && data.risk_score == null));
 
-  const mode: AtomMode = unavailable
-    ? (snap.system.state === "DISCONNECTED" ? "disconnected" : "calibrating")
-    : calibrating ? "calibrating"
-    : snap.system.state === "DISCONNECTED" ? "disconnected" : "live";
+  const mode: AtomMode = firstRun ? "live" : unavailable ? "disconnected" : calibrating ? "calibrating" : "live";
   const glassIntensity = {
     freq: data ? clamp01(Math.abs(data.deviations.trade_count ?? 0) / 1.4) : 0,
     pace: data ? clamp01(Math.abs(data.deviations.pace ?? 0) / 1.4) : 0,
     size: data ? clamp01(Math.abs(data.deviations.size ?? 0) / 1.4) : 0,
   };
-  const band = unavailable ? "Offline"
+  const band = firstRun ? "Aligned"
+    : unavailable ? "Offline"
     : calibrating ? "Calibrating"
     : ((r) => (r <= 25 ? "Aligned" : r <= 55 ? "Drifting" : "Off-baseline"))(data!.risk_score as number);
 
-  // per-dimension deviations for Risk Desk + cards
-  const dims = ORDER.map((k) => ({ k, v: data ? data.deviations[k] : null }));
+  // per-dimension deviations: real when present; 0 (= at baseline) on first run; null when calibrating/offline
+  const dims = ORDER.map((k) => ({ k, v: data ? data.deviations[k] : (firstRun ? 0 : null) }));
   const present = dims.filter((d) => d.v != null) as { k: DevKey; v: number }[];
-  const topK = present.length ? present.slice().sort((a, b) => Math.abs(b.v) - Math.abs(a.v))[0].k : null;
+  const topK = (!firstRun && present.length) ? present.slice().sort((a, b) => Math.abs(b.v) - Math.abs(a.v))[0].k : null;
 
   // greeting
   const tod = now.getHours() < 12 ? "morning" : now.getHours() < 17 ? "afternoon" : "evening";
   const lead = `Good ${tod}${userName ? `, ${userName}` : ""}. `;
   let greeting: string;
-  if (unavailable) greeting = lead + (snap.system.state === "DISCONNECTED" ? "Your feed is disconnected — the figures below are frozen until it reconnects." : "Live data is unavailable right now.");
+  if (firstRun) greeting = lead + "Welcome to Axiem. You're at baseline — connect your broker and your A-Game profile builds itself as you trade.";
+  else if (unavailable) greeting = lead + "Your feed is disconnected — the figures below are frozen until it reconnects.";
   else if (calibrating) greeting = lead + "Axiem is still learning your A-Game baseline. Keep trading your plan — comparisons unlock as your history builds.";
   else if (!topK || Math.abs(present.find((p) => p.k === topK)!.v) < 0.12) greeting = lead + "You're tracking close to your A-Game baseline across every signal. Protect the routine that got you here.";
   else {
@@ -136,6 +138,8 @@ export function OverviewLive({ onNavigate, current = "overview", userName = "" }
   const date = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" }).toUpperCase();
   const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }).toUpperCase();
   const rebuiltAgo = data?.computed_at ? Math.max(0, Math.round((now.getTime() - new Date(data.computed_at).getTime()) / 1000)) : null;
+  const chipText = firstRun ? "READY" : systemState;
+  const chipColor = firstRun ? C.ok : stateColor(systemState);
 
   const navItems: { label: string; screen: Screen | null }[] = [
     { label: "Dashboard", screen: "overview" },
@@ -158,11 +162,11 @@ export function OverviewLive({ onNavigate, current = "overview", userName = "" }
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 24, fontFamily: "monospace" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 9, fontSize: 11, letterSpacing: "0.20em", color: stateColor(snap.system.state) }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: stateColor(snap.system.state), animation: mode === "live" ? "ccpulse 2.4s infinite" : undefined }} />
-            {snap.system.state}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 9, fontSize: 11, letterSpacing: "0.20em", color: chipColor }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: chipColor, animation: mode === "live" ? "ccpulse 2.4s infinite" : undefined }} />
+            {chipText}
           </span>
-          <span style={{ fontSize: 11, letterSpacing: "0.16em", color: C.t3 }}>UPDATED {ageS} SEC AGO</span>
+          {ageS != null && <span style={{ fontSize: 11, letterSpacing: "0.16em", color: C.t3 }}>UPDATED {ageS} SEC AGO</span>}
           {rebuiltAgo != null && <span style={{ fontSize: 11, letterSpacing: "0.16em", color: C.t3 }}>REBUILT {rebuiltAgo} SEC AGO</span>}
         </div>
       </div>
@@ -184,13 +188,19 @@ export function OverviewLive({ onNavigate, current = "overview", userName = "" }
 
       {/* ── right info column ── */}
       <div className="cc-panel">
-        {safe.safety !== "OK" && (
+        {safe && safety !== "OK" && (
           <div style={{ fontSize: 12, lineHeight: 1.5, color: C.t1, background: "rgba(216,162,60,0.10)", border: "1px solid rgba(216,162,60,0.3)", borderRadius: 8, padding: "10px 12px", marginBottom: 16 }}>
             {safe.reason ?? data?.message ?? "System state is not fully reliable."}
           </div>
         )}
         <div className="eyebrow">Today&apos;s Overview</div>
         <div style={{ fontSize: 16.5, lineHeight: 1.52, color: C.t1, marginTop: 13, letterSpacing: "-0.005em", fontWeight: 300 }}>{greeting}</div>
+        {!data && (
+          <button onClick={() => onNavigate?.("settings")}
+            style={{ marginTop: 16, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.06em", color: "#0A0B0D", background: C.t1, border: "none", borderRadius: 8, padding: "10px 16px", cursor: "pointer" }}>
+            Connect your broker →
+          </button>
+        )}
 
         <div style={{ marginTop: 24 }}>
           <div className="eyebrow">Risk Desk</div>
