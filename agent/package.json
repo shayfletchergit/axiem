@@ -1,0 +1,24 @@
+{
+  "name": "axiem-agent",
+  "version": "1.0.0",
+  "description": "Axiem desktop agent — connects brokers to Axiem journal",
+  "main": "dist/main.js",
+  "private": true,
+  "scripts": {
+    "dev": "npm run build && electron dist/main.js",
+    "build": "tsc && node src/renderer/build.mjs && cp src/renderer/index.html dist/renderer/index.html",
+    "start": "electron dist/main.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "electron-store": "^8.2.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.10",
+    "electron": "^30.0.0",
+    "typescript": "^5.4.5"
+  }
+}

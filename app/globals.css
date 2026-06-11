@@ -1,0 +1,278 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   AXIEM — Editorial grotesque typography system
+   
+   Reference: Trevarefabrikken — Swiss/neo-grotesque editorial
+   
+   Key principles extracted from reference:
+   · Scale creates emphasis, not font-weight
+   · Display text: regular weight at large size (~60px)
+   · Line height: 0.97 on display (lines nearly touching)
+   · Negative tracking on headings: −0.03em
+   · Ultra-wide tracking on micro labels: 0.14–0.18em
+   · Two-level hierarchy: enormous vs tiny, nothing in between
+   · Font: neutral grotesque — no personality, pure structure
+═══════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ── Surface palette ── */
+    --bg:  25 24 22;
+    --s1:  29 27 25;
+    --s2:  34 32 24;
+    --s3:  39 37 34;
+    --s4:  45 43 38;
+
+    /* ── Text palette ── */
+    --t1:  232 228 220;
+    --t2:  136 132 128;
+    --t3:  80  78  74;
+    --t4:  48  46  44;
+
+    /* ── Brand ── */
+    --gold:   200 168 75;
+    --gold-t: 212 184 96;
+
+    /* ── Signal palette ── */
+    --sig-orange: #E8724A;
+    --sig-teal:   #2CC4A4;
+    --sig-purple: #7B7FD4;
+
+    /* ── Border system ── */
+    --b1: rgba(255,255,255,0.04);
+    --b2: rgba(255,255,255,0.07);
+    --b3: rgba(255,255,255,0.11);
+
+    /* ── Layout ── */
+    --sidebar-w: 168px;
+
+    /* ── Typography: 8px base grid ── */
+    /* Display tier — scale IS the weight */
+    --fs-d1: clamp(3.5rem, 7vw, 5.5rem);     /* Hero greeting: 56–88px */
+    --fs-d2: clamp(2.25rem, 3.5vw, 3.5rem);  /* Section display: 36–56px */
+    --fs-d3: clamp(1.625rem, 2.2vw, 2.5rem); /* Sub display: 26–40px */
+
+    /* UI tier */
+    --fs-lg:  1.0625rem;   /* 17px — editorial body */
+    --fs-md:  0.9375rem;   /* 15px — comfortable body */
+    --fs-sm:  0.8125rem;   /* 13px — UI default */
+    --fs-xs:  0.75rem;     /* 12px — meta */
+    --fs-2xs: 0.6875rem;   /* 11px — small labels */
+    --fs-3xs: 0.625rem;    /* 10px — micro labels */
+
+    /* ── Line heights ── */
+    --lh-d:       0.97;   /* Display — reference standard */
+    --lh-heading: 1.08;   /* Section headings */
+    --lh-body:    1.65;   /* Comfortable reading */
+    --lh-relaxed: 1.8;    /* Metadata, captions */
+
+    /* ── Letter spacing ── */
+    --ls-display: -0.03em;   /* Large headings — tight */
+    --ls-heading: -0.02em;   /* Medium headings */
+    --ls-body:     0.008em;  /* Body — near-neutral */
+    --ls-label:    0.12em;   /* Labels — open */
+    --ls-label-xl: 0.17em;   /* Micro labels — very open */
+
+    /* ── shadcn token map ── */
+    --background:       25 24 22;
+    --foreground:       232 228 220;
+    --muted:            39 37 34;
+    --muted-foreground: 80 78 74;
+    --border:           255 255 255;
+    --input:            39 37 34;
+    --ring:             200 168 75;
+    --radius:           0.125rem;
+    --primary:          200 168 75;
+    --primary-foreground: 25 24 22;
+
+    /* Grain */
+    --grain-opacity: 0.32;
+  }
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { height: 100%; overflow: hidden; }
+
+  body {
+    height: 100%;
+    background-color: rgb(var(--bg));
+    color: rgb(var(--t1));
+    font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-body);
+    letter-spacing: var(--ls-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "tnum" 1, "kern" 1;
+    overflow: hidden;
+  }
+
+  /* Warm film grain — atmospheric depth */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2Ij48ZmlsdGVyIGlkPSJuIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC43NSIgbnVtT2N0YXZlcz0iNCIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjxmZUNvbG9yTWF0cml4IHR5cGU9Im1hdHJpeCIgdmFsdWVzPSIxIDAgMCAwIDAuMDQgMCAxIDAgMCAwLjAzIDAgMCAxIDAgMC4wMSAwIDAgMCAwLjE4IDAiLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsdGVyPSJ1cmwoI24pIi8+PC9zdmc+");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: overlay;
+    transition: opacity 0.8s ease;
+  }
+
+  #__next, main { position: relative; z-index: 1; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 2px; }
+}
+
+/* ── Behaviour-responsive states ── */
+body.axiem-breached    { --gold: 138 126 90; --gold-t: 158 146 114; --grain-opacity: 0.44; }
+body.axiem-disciplined { --grain-opacity: 0.20; }
+body.axiem-volatile    { --grain-opacity: 0.50; }
+
+/* ═══════════════════════════════════════════════════════════
+   TYPOGRAPHY UTILITY CLASSES
+   These should be used consistently across all components.
+═══════════════════════════════════════════════════════════ */
+
+/*
+  DISPLAY — Hero scale. Regular weight. Tight leading.
+  "Stay, Taste, Take Part, Move" energy.
+  Usage: main greeting, hero statements
+*/
+.t-display {
+  font-size: var(--fs-d1);
+  line-height: var(--lh-d);
+  letter-spacing: var(--ls-display);
+  font-weight: 400;
+}
+
+/*
+  HEADING — Section scale. Still large, slightly more air.
+  Usage: section titles ("Yesterday", "This week")
+*/
+.t-heading {
+  font-size: var(--fs-d2);
+  line-height: var(--lh-heading);
+  letter-spacing: var(--ls-heading);
+  font-weight: 400;
+}
+
+/*
+  SUBHEADING — Tertiary scale. Screen titles.
+  Usage: screen headers ("Sessions", "Settings")
+*/
+.t-subheading {
+  font-size: var(--fs-d3);
+  line-height: var(--lh-heading);
+  letter-spacing: var(--ls-heading);
+  font-weight: 400;
+}
+
+/*
+  EDITORIAL — Summary paragraphs. Generous leading.
+  Usage: today summary, performance summaries
+*/
+.t-editorial {
+  font-size: var(--fs-md);
+  line-height: 1.72;
+  letter-spacing: var(--ls-body);
+  font-weight: 400;
+}
+
+/*
+  BODY — Standard UI text.
+  Usage: nav items, set rows, session items
+*/
+.t-body {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-body);
+  font-weight: 400;
+}
+
+/*
+  META — Secondary information, captions.
+  Usage: dates, durations, R values
+*/
+.t-meta {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-relaxed);
+  letter-spacing: var(--ls-body);
+  font-weight: 400;
+}
+
+/*
+  LABEL — Uppercase eyebrow labels.
+  Usage: "Today", "Form Score", section labels
+  Direct reference: "TREVAREFABRIKKEN" brand label in image
+*/
+.t-label {
+  font-size: var(--fs-3xs);
+  line-height: 1;
+  letter-spacing: var(--ls-label-xl);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/*
+  LABEL-SM — Slightly larger labels.
+  Usage: nav section dividers, tooltip headers
+*/
+.t-label-sm {
+  font-size: var(--fs-2xs);
+  line-height: 1;
+  letter-spacing: var(--ls-label);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* Tabular numbers */
+.t-tab { font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums; }
+
+/* ── Ambient gradient drift animations — used by AmbientGradient + PauseOverlay ── */
+@keyframes ambientDrift0 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(3%, -4%) scale(1.04); }
+  66%       { transform: translate(-2%, 3%) scale(0.97); }
+}
+@keyframes ambientDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%       { transform: translate(-4%, 3%) scale(1.06); }
+  70%       { transform: translate(2%, -2%) scale(0.96); }
+}
+@keyframes ambientDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(3%, 4%) scale(1.03); }
+  80%       { transform: translate(-1%, -3%) scale(0.98); }
+}
+
+/* Live dot pulse */
+@keyframes livepulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(44,196,164,0.3); }
+  50%       { opacity: 0.5; box-shadow: 0 0 0 4px rgba(44,196,164,0); }
+}
+
+/* ── Section alert pulse — state-responsive glow for elevated sections ── */
+@keyframes sectionGlowPulseWarn {
+  0%, 100% { opacity: 0.12; transform: scale(1); }
+  50%       { opacity: 0.30; transform: scale(1.06); }
+}
+@keyframes sectionGlowPulseCrit {
+  0%, 100% { opacity: 0.14; transform: scale(1); }
+  50%       { opacity: 0.40; transform: scale(1.08); }
+}
+@keyframes alertRowWarn {
+  0%, 100% { box-shadow: inset 2px 0 0 rgba(212,168,75,0.18); background: transparent; }
+  50%       { box-shadow: inset 2px 0 0 rgba(212,168,75,0.60); background: rgba(212,168,75,0.028); }
+}
+@keyframes alertRowCrit {
+  0%, 100% { box-shadow: inset 2px 0 0 rgba(232,114,74,0.22); background: transparent; }
+  50%       { box-shadow: inset 2px 0 0 rgba(232,114,74,0.68); background: rgba(232,114,74,0.032); }
+}

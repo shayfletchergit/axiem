@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Axiem Bridge</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 280px;
+      background: #1a1917;
+      color: #e8e4dc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+    }
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { font-weight: 600; letter-spacing: -0.02em; color: #e8e4dc; }
+    .logo span { color: #2CC4A4; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #555;
+    }
+    .status-dot.connected { background: #2CC4A4; box-shadow: 0 0 6px rgba(44,196,164,0.6); }
+    .status-dot.error     { background: #E8724A; }
+    .status-dot.connecting { background: #d4a84b; }
+    .body { padding: 16px; }
+    .status-label {
+      font-size: 11px; color: rgba(232,228,220,0.45);
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .field { margin-bottom: 10px; }
+    .field label {
+      display: block; font-size: 10px; color: rgba(232,228,220,0.4);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+    }
+    .field input {
+      width: 100%; height: 30px; padding: 0 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 2px; color: #e8e4dc; font-size: 12px; outline: none;
+    }
+    .field input:focus { border-color: rgba(44,196,164,0.4); }
+    .env-row { display: flex; gap: 6px; margin-bottom: 12px; }
+    .env-btn {
+      flex: 1; height: 28px; font-size: 11px; cursor: pointer;
+      border-radius: 2px; border: 1px solid rgba(255,255,255,0.08);
+      background: transparent; color: rgba(232,228,220,0.45);
+      text-transform: capitalize; transition: all 0.15s;
+    }
+    .env-btn.active {
+      border-color: rgba(44,196,164,0.35);
+      background: rgba(44,196,164,0.08);
+      color: #2CC4A4;
+    }
+    .save-btn {
+      width: 100%; height: 32px; background: rgba(232,228,220,0.92);
+      color: #19160e; border: none; border-radius: 2px;
+      font-size: 12px; font-weight: 500; cursor: pointer; margin-top: 4px;
+    }
+    .save-btn:hover { background: #e8e4dc; }
+    .footer {
+      padding: 10px 16px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      font-size: 10px; color: rgba(232,228,220,0.3);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .disconnect-btn {
+      font-size: 10px; color: rgba(232,114,74,0.6);
+      background: none; border: none; cursor: pointer; padding: 0;
+    }
+    .disconnect-btn:hover { color: #E8724A; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Axiem <span>Bridge</span></div>
+    <div class="status-dot" id="statusDot"></div>
+  </div>
+  <div class="body">
+    <div class="status-label" id="statusLabel">Waiting for Tradovate…</div>
+
+    <div class="field">
+      <label>Axiem URL</label>
+      <input type="text" id="axiemUrl" placeholder="http://localhost:3000" />
+    </div>
+
+    <div class="field">
+      <label>Webhook secret</label>
+      <input type="password" id="webhookSecret" placeholder="axiem-dev-secret-…" />
+    </div>
+
+    <div>
+      <label style="font-size:10px;color:rgba(232,228,220,0.4);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:6px;">Environment</label>
+      <div class="env-row">
+        <button class="env-btn active" id="envDemo">demo</button>
+        <button class="env-btn" id="envLive">live</button>
+      </div>
+    </div>
+
+    <button class="save-btn" id="saveBtn">Save settings</button>
+  </div>
+  <div class="footer">
+    <span id="syncLabel">Open trader.tradovate.com to connect</span>
+    <button class="disconnect-btn" id="disconnectBtn">Disconnect</button>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

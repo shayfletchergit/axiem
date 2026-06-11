@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Axiem Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1a1917; color: #e8e4dc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px; padding: 24px; min-height: 100vh;
+      -webkit-app-region: drag;
+    }
+    .no-drag { -webkit-app-region: no-drag; }
+    h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }
+    h1 span { color: #2CC4A4; }
+    .subtitle { font-size: 11px; color: rgba(232,228,220,0.35); margin-bottom: 24px; }
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 4px; padding: 16px; margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; color: rgba(232,228,220,0.4); margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #444; display: inline-block;
+    }
+    .status-dot.connected { background: #2CC4A4; box-shadow: 0 0 5px rgba(44,196,164,0.5); }
+    .status-dot.polling   { background: #d4a84b; }
+    .status-dot.error     { background: #E8724A; }
+    .field { margin-bottom: 10px; }
+    .field label {
+      display: block; font-size: 10px; color: rgba(232,228,220,0.38);
+      text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px;
+    }
+    .field input, .field textarea {
+      width: 100%; height: 30px; padding: 0 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 2px; color: #e8e4dc; font-size: 12px; outline: none;
+      font-family: inherit;
+    }
+    .field textarea { height: 60px; padding: 6px 8px; resize: vertical; line-height: 1.5; }
+    .field input:focus, .field textarea:focus { border-color: rgba(44,196,164,0.35); }
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+    .toggle {
+      width: 36px; height: 20px; background: rgba(255,255,255,0.1);
+      border: none; border-radius: 10px; cursor: pointer; position: relative;
+      transition: background 0.2s;
+    }
+    .toggle::after {
+      content: ""; width: 14px; height: 14px; background: #e8e4dc;
+      border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: left 0.2s;
+    }
+    .toggle.on { background: rgba(44,196,164,0.5); }
+    .toggle.on::after { left: 19px; }
+    .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+    .btn {
+      flex: 1; height: 30px; border-radius: 2px; border: none;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: rgba(232,228,220,0.92); color: #19160e; }
+    .btn-secondary {
+      background: transparent; color: rgba(232,228,220,0.5);
+      border: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    .btn-danger {
+      background: rgba(232,114,74,0.1); color: #E8724A;
+      border: 1px solid rgba(232,114,74,0.2) !important;
+    }
+    .stats {
+      display: flex; gap: 16px; margin-top: 8px;
+      font-size: 11px; color: rgba(232,228,220,0.35);
+    }
+    .stats span { color: rgba(232,228,220,0.7); }
+    #toastMsg {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(44,196,164,0.15); border: 1px solid rgba(44,196,164,0.3);
+      color: #2CC4A4; padding: 8px 16px; border-radius: 4px;
+      font-size: 12px; display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Axiem <span>Agent</span></h1>
+  <p class="subtitle">Desktop bridge — connects brokers to your Axiem journal</p>
+
+  <!-- Axiem connection -->
+  <div class="card no-drag">
+    <div class="card-title">Axiem</div>
+    <div class="field">
+      <label>Axiem URL</label>
+      <input type="text" id="axiemUrl" placeholder="http://localhost:3000" />
+    </div>
+    <div class="field">
+      <label>Webhook secret</label>
+      <input type="password" id="webhookSecret" />
+    </div>
+  </div>
+
+  <!-- Tradovate -->
+  <div class="card no-drag">
+    <div class="card-title">
+      <span>Tradovate</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="status-dot" id="tvDot"></span>
+        <span id="tvLabel" style="font-size:10px;color:rgba(232,228,220,0.35);">Inactive</span>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <span style="font-size:12px;color:rgba(232,228,220,0.6);">Enable Tradovate connection</span>
+      <button class="toggle no-drag" id="tvToggle"></button>
+    </div>
+    <div id="tvFields">
+      <div class="field">
+        <label>Access token (paste from DevTools)</label>
+        <input type="password" id="tvToken" placeholder="eyJ…" />
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button class="btn btn-secondary no-drag" id="envDemo" style="flex:1;height:28px;font-size:11px;">Demo</button>
+        <button class="btn btn-secondary no-drag" id="envLive" style="flex:1;height:28px;font-size:11px;">Live</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- File watch -->
+  <div class="card no-drag">
+    <div class="card-title">
+      <span>File Watch</span>
+      <span id="fwLabel" style="font-size:10px;color:rgba(232,228,220,0.35);">Inactive</span>
+    </div>
+    <div class="toggle-row">
+      <span style="font-size:12px;color:rgba(232,228,220,0.6);">Watch CSV files</span>
+      <button class="toggle no-drag" id="fwToggle"></button>
+    </div>
+    <div class="field">
+      <label>Watch paths (one per line)</label>
+      <textarea id="watchPaths" placeholder="/Users/you/NinjaTrader/trades&#10;/Users/you/Desktop/exports"></textarea>
+    </div>
+  </div>
+
+  <!-- Stats + actions -->
+  <div class="card no-drag">
+    <div class="card-title">Status</div>
+    <div class="stats">
+      Executions relayed: <span id="execCount">0</span>
+      &nbsp;·&nbsp; Last sync: <span id="lastSync">—</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="saveBtn">Save &amp; apply</button>
+      <button class="btn btn-danger" id="quitBtn">Quit agent</button>
+    </div>
+  </div>
+
+  <div id="toastMsg"></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "Axiem Bridge",
+  "version": "1.1.0",
+  "description": "Connects Tradovate-powered platforms to your Axiem trading journal automatically.",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://*.tradovate.com/*",
+    "https://apextraderapp.com/*",
+    "https://app.topstepx.com/*",
+    "https://app.bulenox.com/*",
+    "https://app.takeprofittrader.com/*",
+    "https://trade.earn2trade.com/*",
+    "http://localhost/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injected.js"],
+      "matches": [
+        "https://*.tradovate.com/*",
+        "https://apextraderapp.com/*",
+        "https://app.topstepx.com/*",
+        "https://app.bulenox.com/*",
+        "https://app.takeprofittrader.com/*",
+        "https://trade.earn2trade.com/*"
+      ]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.tradovate.com/*",
+        "https://apextraderapp.com/*",
+        "https://app.topstepx.com/*",
+        "https://app.bulenox.com/*",
+        "https://app.takeprofittrader.com/*",
+        "https://trade.earn2trade.com/*"
+      ],
+      "js": ["injected.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://*.tradovate.com/*",
+        "https://apextraderapp.com/*",
+        "https://app.topstepx.com/*",
+        "https://app.bulenox.com/*",
+        "https://app.takeprofittrader.com/*",
+        "https://trade.earn2trade.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/index.html"
+  }
+}
