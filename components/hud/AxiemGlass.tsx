@@ -47,7 +47,7 @@ type Blade = (typeof ORDER)[number];
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
-export function AxiemGlass({ intensity, label, mode = "live", size }: AxiemGlassProps) {
+export function AxiemGlass({ intensity, label, mode = "live", size, fill }: AxiemGlassProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const propsRef = useRef({ intensity, label, mode });
   propsRef.current = { intensity, label, mode };
@@ -231,12 +231,14 @@ export function AxiemGlass({ intensity, label, mode = "live", size }: AxiemGlass
     };
   }, []);
 
-  const width = size ? `${size}px` : "min(360px, 86vw)";
+  const wrapStyle: React.CSSProperties = fill
+    ? { position: "relative", width: "100%", height: "100%" }
+    : { position: "relative", width: size ? `${size}px` : "min(360px, 86vw)", aspectRatio: "1" };
 
   if (failed) {
     // graceful fallback: the solid mark + label, no WebGL
     return (
-      <div style={{ position: "relative", width, aspectRatio: "1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ ...wrapStyle, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <svg viewBox="0 0 506 506" width="62%" height="62%" style={{ opacity: 0.5 }}>
           {ORDER.map((k) => <path key={k} d={BLADE_D[k]} fill="#3A4049" />)}
         </svg>
@@ -245,5 +247,5 @@ export function AxiemGlass({ intensity, label, mode = "live", size }: AxiemGlass
     );
   }
 
-  return <div ref={wrapRef} style={{ position: "relative", width, aspectRatio: "1" }} />;
+  return <div ref={wrapRef} style={wrapStyle} />;
 }

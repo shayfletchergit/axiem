@@ -292,7 +292,7 @@ export default function App() {
   const pauseQuestion = questions[(store.session?.trades.length ?? 0) % 3];
 
   const screenComponents: Record<Screen, React.ReactNode> = {
-    overview:  <OverviewLive />,
+    overview:  null, // rendered full-bleed below (control-center chrome)
     behaviour: <Behaviour />,
     history:   <SessionsLive />,
     settings:  <Settings onOpenSub={() => {}} tradovate={{ state: tvState, recentFills: tvFills, connect: tvConnect, connectWithToken: tvConnectWithToken, disconnect: tvDisconnect }} />,
@@ -303,23 +303,30 @@ export default function App() {
 
   return (
     <>
-      {/* App shell */}
-      <div className="fixed inset-0 flex flex-col">
-<TopBar onLogTrade={() => setLogOpen(true)} onEndSession={() => {
-          if (confirm("End session and reflect?")) { store.endSession(); setPhase("presession"); }
-        }} />
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar current={screen} onNavigate={setScreen} />
-          <main className="flex-1 min-w-0 overflow-hidden relative">
-            <AnimatePresence mode="wait">
-              <motion.div key={screen} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                transition={{ duration: 0.21, ease: "easeInOut" }} className="absolute inset-0">
-                {screenComponents[screen]}
-              </motion.div>
-            </AnimatePresence>
-          </main>
+      {screen === "overview" ? (
+        /* Dashboard — full-bleed HUD control center with its own topbar + nav */
+        <div className="fixed inset-0 overflow-auto">
+          <OverviewLive onNavigate={setScreen} current={screen} userName={store.name} />
         </div>
-      </div>
+      ) : (
+        /* App shell for the other screens */
+        <div className="fixed inset-0 flex flex-col">
+          <TopBar onLogTrade={() => setLogOpen(true)} onEndSession={() => {
+            if (confirm("End session and reflect?")) { store.endSession(); setPhase("presession"); }
+          }} />
+          <div className="flex flex-1 overflow-hidden">
+            <Sidebar current={screen} onNavigate={setScreen} />
+            <main className="flex-1 min-w-0 overflow-hidden relative">
+              <AnimatePresence mode="wait">
+                <motion.div key={screen} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  transition={{ duration: 0.21, ease: "easeInOut" }} className="absolute inset-0">
+                  {screenComponents[screen]}
+                </motion.div>
+              </AnimatePresence>
+            </main>
+          </div>
+        </div>
+      )}
 
       {/* Overlays */}
       <AutoTradePrompt trade={pendingTvTrade} onClose={() => setPendingTvTrade(null)} />
