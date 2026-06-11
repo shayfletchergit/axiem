@@ -119,7 +119,7 @@ BEGIN
   -- hashtext(text) → int4.  Two keys reduces false-sharing between positions.
   PERFORM pg_advisory_xact_lock(
     hashtext(p_user_id::text),
-    hashtext(p_instrument || E'\x00' || p_account_id)
+    hashtext(p_instrument || '|' || p_account_id)
   );
 
   -- Return events in strict event_sequence_id order (EV-3).
