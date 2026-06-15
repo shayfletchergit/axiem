@@ -295,7 +295,7 @@ const CC_CSS = `
 .cc-top{position:absolute;top:0;left:0;right:0;height:92px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;z-index:30}
 .cc-nav{position:absolute;left:56px;top:50%;transform:translateY(-50%);z-index:30;display:flex;flex-direction:column;gap:6px}
 .cc-hero{position:absolute;left:172px;right:436px;top:64px;bottom:236px;display:flex;align-items:center;justify-content:center;z-index:1}
-.cc-hero-inner{position:relative;width:min(100%,560px);aspect-ratio:1}
+.cc-hero-inner{position:relative;width:min(100%,52vh,560px);aspect-ratio:1}
 .cc-panel{position:absolute;right:40px;top:50%;transform:translateY(-50%);width:372px;z-index:30;background:rgba(255,255,255,0.013);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:26px 24px;backdrop-filter:blur(6px)}
 .cc-cards{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);z-index:25;display:flex;gap:14px}
 .cc-foot{position:absolute;left:50px;bottom:30px;z-index:30;display:flex;align-items:center;gap:11px}

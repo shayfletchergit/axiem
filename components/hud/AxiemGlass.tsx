@@ -17,11 +17,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { BokehPass } from "three/addons/postprocessing/BokehPass.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 export type GlassMode = "live" | "calibrating" | "disconnected";
 
@@ -60,14 +55,15 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
 
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     } catch { setFailed(true); return; }
 
     let W = wrap.clientWidth || 320, H = wrap.clientHeight || W;
     renderer.setSize(W, H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0); // transparent — the toneMapped:false backdrop matches the page exactly, so there's no canvas box
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.1;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     wrap.appendChild(renderer.domElement);
     renderer.domElement.style.width = "100%";
@@ -75,7 +71,6 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     renderer.domElement.style.display = "block";
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060709);
     const camera = new THREE.PerspectiveCamera(34, W / H, 0.1, 100);
     camera.position.set(0, 0, 6.8);
 
@@ -105,7 +100,7 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
         transmission: 1, ior: 1.52, thickness: 1.4, roughness: 0.03, metalness: 0,
         clearcoat: 1, clearcoatRoughness: 0.05,
         attenuationColor: new THREE.Color(0xe9f1ff), attenuationDistance: 3.0,
-        specularIntensity: 1, envMapIntensity: 1.75,
+        specularIntensity: 1, envMapIntensity: 2.0,
         iridescence: 0.3, iridescenceIOR: 1.32, iridescenceThicknessRange: [120, 460],
         side: THREE.DoubleSide,
       });
@@ -139,49 +134,22 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     });
     group.scale.set(S, -S, S);
 
-    // ── state word rendered behind the glass (refracted) ──
-    const stateCanvas = document.createElement("canvas"); stateCanvas.width = stateCanvas.height = 1024;
-    const sctx = stateCanvas.getContext("2d")!;
-    const stateTex = new THREE.CanvasTexture(stateCanvas); stateTex.colorSpace = THREE.SRGBColorSpace;
-    const backdropMat = new THREE.MeshBasicMaterial({ map: stateTex });
-    const backdropGeo = new THREE.PlaneGeometry(9, 9);
+    // ── flat page-colour backdrop (toneMapped:false → outputs the EXACT page colour, so the
+    // canvas has no visible box). The glass refracts this dark plane, so the crystal reads dark. ──
+    const backdropGeo = new THREE.PlaneGeometry(16, 16);
+    const backdropMat = new THREE.MeshBasicMaterial({ color: 0x0a0b0d, toneMapped: false });
     const backdrop = new THREE.Mesh(backdropGeo, backdropMat);
-    backdrop.position.set(0, 0, -1.7);
+    backdrop.position.set(0, 0, -2.0);
     scene.add(backdrop);
-    disposables.push(backdropGeo, backdropMat, stateTex);
-
-    let lastLabel = "";
-    const drawState = (text: string) => {
-      const w = 1024, cx = 512, cy = 512, x = sctx;
-      const g = x.createRadialGradient(cx, 450, 30, cx, cy, 540);
-      g.addColorStop(0, "#161a21"); g.addColorStop(0.55, "#0b0d12"); g.addColorStop(1, "#060709");
-      x.fillStyle = g; x.fillRect(0, 0, w, w);
-      x.strokeStyle = "rgba(255,255,255,0.045)"; x.lineWidth = 2;
-      x.beginPath(); x.arc(cx, cy, 332, 0, Math.PI * 2); x.stroke();
-      x.textAlign = "center"; x.textBaseline = "middle";
-      x.fillStyle = "rgba(228,232,238,0.34)";
-      x.font = "500 60px Inter, system-ui, sans-serif";
-      x.fillText(text, cx, cy);
-      stateTex.needsUpdate = true;
-      lastLabel = text;
-    };
-    drawState(label);
-
-    // ── postprocessing ──
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    const bokeh = new BokehPass(scene, camera, { focus: 6.8, aperture: 0.00055, maxblur: 0.006 });
-    composer.addPass(bokeh);
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.62, 0.55, 0.84));
-    composer.addPass(new OutputPass());
+    disposables.push(backdropGeo, backdropMat);
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const sizeRenderer = () => {
       W = wrap.clientWidth || 320; H = wrap.clientHeight || W;
-      renderer.setSize(W, H); composer.setSize(W, H);
+      renderer.setSize(W, H);
       camera.aspect = W / H; camera.updateProjectionMatrix();
-      if (reduced) composer.render();
+      if (reduced) renderer.render(scene, camera);
     };
     const ro = new ResizeObserver(sizeRenderer);
     ro.observe(wrap);
@@ -204,18 +172,17 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     let raf = 0;
     const render = (ms: number) => {
       const t = ms / 1000;
-      if (propsRef.current.label !== lastLabel) drawState(propsRef.current.label);
       const spinning = !reduced && propsRef.current.mode !== "disconnected";
       if (spinning) { group.rotation.y = Math.sin(t * 0.32) * 0.42; group.rotation.x = Math.sin(t * 0.24) * 0.10; }
       applyBlades(t, true);
-      composer.render();
+      renderer.render(scene, camera);
       raf = requestAnimationFrame(render);
     };
 
     if (reduced) {
       group.rotation.set(0.08, 0.28, 0);
       applyBlades(0, false);
-      composer.render();
+      renderer.render(scene, camera);
     } else {
       raf = requestAnimationFrame(render);
     }
@@ -225,7 +192,6 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
       ro.disconnect();
       disposables.forEach((d) => d.dispose());
       envTex.dispose(); pmrem.dispose();
-      composer.dispose?.();
       renderer.dispose();
       if (renderer.domElement.parentNode === wrap) wrap.removeChild(renderer.domElement);
     };
