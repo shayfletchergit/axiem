@@ -128,7 +128,7 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     const S = 1 / 150;
     data.paths.forEach((path, i) => {
       const shapes = SVGLoader.createShapes(path);
-      const geo = new THREE.ExtrudeGeometry(shapes, { depth: 82, bevelEnabled: true, bevelThickness: 2.5, bevelSize: 1.5, bevelSegments: 1, curveSegments: 60 });
+      const geo = new THREE.ExtrudeGeometry(shapes, { depth: 26, bevelEnabled: true, bevelThickness: 2, bevelSize: 1.2, bevelSegments: 1, curveSegments: 60 });
       geo.center(); geo.computeVertexNormals();
       const mat = makeMat();
       const mesh = new THREE.Mesh(geo, mat);
