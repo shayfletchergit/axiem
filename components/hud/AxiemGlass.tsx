@@ -83,9 +83,10 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     };
     lightPlane(12, 12, 0xffffff, 2.4, [0, 9, 4], [-Math.PI / 2.3, 0, 0]);
     lightPlane(9, 9, 0xffd6a0, 1.5, [-9, 1, 3], [0, Math.PI / 2.5, 0]);
-    lightPlane(9, 9, 0xa9c6ff, 1.1, [9, -1, -3], [0, -Math.PI / 2.5, 0]);
+    lightPlane(9, 9, 0x5a8cff, 2.6, [9, -1, -3], [0, -Math.PI / 2.5, 0]);
     lightPlane(0.45, 9, 0xffffff, 6.0, [-2.4, 2.5, 6], [0, 0, 0.32]);
     lightPlane(0.45, 9, 0xffffff, 6.0, [3.2, -1, 6], [0, 0, -0.44]);
+    lightPlane(11, 11, 0x2f6bff, 1.8, [0, 0, -6]); // blue back-glow → feeds the glowing blue edge rim
     const pmrem = new THREE.PMREMGenerator(renderer);
     const envTex = pmrem.fromScene(studio, 0.015).texture;
     scene.environment = envTex;
@@ -97,14 +98,23 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     // ── glass material (constant in every state) ──
     const makeMat = () => {
       const m = new THREE.MeshPhysicalMaterial({
-        transmission: 1, ior: 1.52, thickness: 1.4, roughness: 0.03, metalness: 0,
-        clearcoat: 1, clearcoatRoughness: 0.05,
-        attenuationColor: new THREE.Color(0xe9f1ff), attenuationDistance: 3.0,
+        transmission: 1, ior: 1.52, thickness: 1.4, roughness: 0.04, metalness: 0,
+        clearcoat: 1, clearcoatRoughness: 0.06,
+        attenuationColor: new THREE.Color(0xdfe9ff), attenuationDistance: 2.6,
         specularIntensity: 1, envMapIntensity: 2.0,
-        iridescence: 0.3, iridescenceIOR: 1.32, iridescenceThicknessRange: [120, 460],
+        iridescence: 0.25, iridescenceIOR: 1.32, iridescenceThicknessRange: [120, 460],
         side: THREE.DoubleSide,
       });
       (m as unknown as { dispersion: number }).dispersion = 3.6;
+      // glowing blue edge rim (Forbes-card style): a view-dependent fresnel emissive
+      m.onBeforeCompile = (sh) => {
+        sh.uniforms.uRimColor = { value: new THREE.Color(0x3f8bff) };
+        sh.uniforms.uRimPower = { value: 2.6 };
+        sh.uniforms.uRimInt = { value: 2.2 };
+        sh.fragmentShader = "uniform vec3 uRimColor; uniform float uRimPower; uniform float uRimInt;\n" + sh.fragmentShader.replace(
+          "#include <emissivemap_fragment>",
+          "#include <emissivemap_fragment>\n  float _rim = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), uRimPower);\n  totalEmissiveRadiance += uRimColor * _rim * uRimInt;");
+      };
       return m;
     };
 
@@ -169,11 +179,26 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
       });
     };
 
+    // ── interactive cursor tilt (eases back to centre on pointer leave) ──
+    let targX = 0, targY = 0;
+    const onMove = (e: PointerEvent) => {
+      const r = wrap.getBoundingClientRect();
+      const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
+      const ny = ((e.clientY - r.top) / r.height) * 2 - 1;
+      targY = Math.max(-1, Math.min(1, nx)) * 0.5;
+      targX = Math.max(-1, Math.min(1, ny)) * 0.35;
+    };
+    const onLeave = () => { targX = 0; targY = 0; };
+    if (!reduced) { wrap.addEventListener("pointermove", onMove); wrap.addEventListener("pointerleave", onLeave); }
+
     let raf = 0;
     const render = (ms: number) => {
       const t = ms / 1000;
-      const spinning = !reduced && propsRef.current.mode !== "disconnected";
-      if (spinning) { group.rotation.y = Math.sin(t * 0.32) * 0.42; group.rotation.x = Math.sin(t * 0.24) * 0.10; }
+      const live = propsRef.current.mode !== "disconnected";
+      const swayY = live ? Math.sin(t * 0.3) * 0.10 : 0;
+      const swayX = live ? Math.sin(t * 0.23) * 0.04 : 0;
+      group.rotation.y += ((targY + swayY) - group.rotation.y) * 0.07;
+      group.rotation.x += ((targX + swayX) - group.rotation.x) * 0.07;
       applyBlades(t, true);
       renderer.render(scene, camera);
       raf = requestAnimationFrame(render);
@@ -190,6 +215,8 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      wrap.removeEventListener("pointermove", onMove);
+      wrap.removeEventListener("pointerleave", onLeave);
       disposables.forEach((d) => d.dispose());
       envTex.dispose(); pmrem.dispose();
       renderer.dispose();
