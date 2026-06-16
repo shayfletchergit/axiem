@@ -33,9 +33,9 @@ export interface AxiemGlassProps {
 }
 
 const BLADE_D = {
-  freq: "M453.236 407.657C406.964 467.478 334.481 505.998 253 505.998C172.221 505.998 100.284 468.141 53.9639 409.201C60.5202 413.487 68.2783 415.998 76.7441 415.998H428.238C437.675 415.998 446.238 412.877 453.236 407.657Z",
-  pace: "M253.93 0C393.23 0.501111 506 113.58 506 252.998C506 300.54 492.886 345.019 470.079 383.016C472.654 374.113 472.761 364.229 469.657 354.454H469.707C445.772 278.789 392.68 145.164 289.453 21.0225C283.1 10.6422 273.004 3.63365 261.923 1.05176C261.381 0.946389 260.84 0.84072 260.298 0.735352C259.855 0.630003 259.362 0.525365 258.919 0.472656C258.229 0.367279 257.589 0.314355 256.899 0.208984C256.506 0.208984 256.112 0.103594 255.718 0.103516C255.138 0.103516 254.511 0.0516484 253.93 0Z",
-  size: "M250.061 0.0146484C249.775 0.0286961 249.491 0.0546892 249.217 0.103516C248.823 0.103516 248.428 0.208984 248.034 0.208984C247.345 0.261672 246.705 0.367305 246.016 0.472656C245.572 0.525348 245.079 0.629968 244.636 0.735352C244.094 0.840712 243.552 0.946398 243.011 1.05176C231.93 3.63368 221.883 10.6423 215.48 21.0225C112.352 145.164 59.3097 278.789 35.3252 354.454C32.5765 363.155 32.3635 371.944 34.166 380.049C12.442 342.712 0 299.308 0 252.998C0 114.251 111.687 1.58996 250.061 0.0146484Z",
+  freq: "M0.1 199.6 51.5 228.4 114.3 191.4 63.3 162.8 62.6 105.1 0 141.7 Z",
+  pace: "M111.7 0 163.1 28.7 164.5 101.6 113.5 73.1 63.9 102.7 62.3 30.3 Z",
+  size: "M230.7 196.4 180.1 226.5 116.3 191.3 166.6 161.3 165.7 103.6 229.3 138.5 Z",
 } as const;
 const ORDER = ["freq", "pace", "size"] as const;
 type Blade = (typeof ORDER)[number];
@@ -123,9 +123,9 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     const blades: Record<Blade, THREE.Mesh> = {} as Record<Blade, THREE.Mesh>;
     const disposables: { dispose: () => void }[] = [];
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 506 506">${ORDER.map((k) => `<path d="${BLADE_D[k]}"/>`).join("")}</svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230.7 228.4">${ORDER.map((k) => `<path d="${BLADE_D[k]}"/>`).join("")}</svg>`;
     const data = new SVGLoader().parse(svg);
-    const S = 1 / 150;
+    const S = 1 / 72;
     data.paths.forEach((path, i) => {
       const shapes = SVGLoader.createShapes(path);
       const geo = new THREE.ExtrudeGeometry(shapes, { depth: 26, bevelEnabled: true, bevelThickness: 2, bevelSize: 1.2, bevelSegments: 1, curveSegments: 60 });
@@ -136,8 +136,8 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
       const tmp = new THREE.ExtrudeGeometry(SVGLoader.createShapes(path), { depth: 1 });
       tmp.computeBoundingBox();
       const c = new THREE.Vector3(); tmp.boundingBox!.getCenter(c); tmp.dispose();
-      const dir = new THREE.Vector2(c.x - 253, c.y - 253); if (dir.lengthSq() < 1e-4) dir.set(0, 1); dir.normalize();
-      mesh.userData = { dir, base: c.clone().sub(new THREE.Vector3(253, 253, 0)), idx: i, cur: 0.05 };
+      const dir = new THREE.Vector2(c.x - 115.35, c.y - 114.2); if (dir.lengthSq() < 1e-4) dir.set(0, 1); dir.normalize();
+      mesh.userData = { dir, base: c.clone().sub(new THREE.Vector3(115.35, 114.2, 0)), idx: i, cur: 0.05 };
       mesh.position.copy(mesh.userData.base as THREE.Vector3);
       blades[ORDER[i]] = mesh;
       group.add(mesh);
@@ -232,7 +232,7 @@ export function AxiemGlass({ intensity, label, mode = "live", size, fill }: Axie
     // graceful fallback: the solid mark + label, no WebGL
     return (
       <div style={{ ...wrapStyle, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <svg viewBox="0 0 506 506" width="62%" height="62%" style={{ opacity: 0.5 }}>
+        <svg viewBox="0 0 230.7 228.4" width="62%" height="62%" style={{ opacity: 0.5 }}>
           {ORDER.map((k) => <path key={k} d={BLADE_D[k]} fill="#3A4049" />)}
         </svg>
         <div style={{ position: "absolute", fontSize: 15, color: "rgba(228,232,238,0.6)", fontFamily: "Inter, system-ui, sans-serif" }}>{label}</div>
