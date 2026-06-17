@@ -39,6 +39,196 @@ function timeAgo(ts: string | number): string {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+// ── RAIL: prop-account rule profile ───────────────────────────────────────────
+const usd = (n: number | null | undefined) => (n == null ? "—" : "$" + Math.round(n).toLocaleString());
+
+interface RulePresetLite {
+  id: string; firm: string; planLabel: string; accountSize: number;
+  startingBalance: number; profitTarget: number | null; maxDrawdown: number;
+  drawdownType: string; dailyLossLimit: number | null; consistencyPct: number | null;
+  verifiedOn: string | null; sourceUrl: string | null;
+}
+interface RuleProfileLite {
+  firm: string; planLabel: string; startingBalance: number; profitTarget: number | null;
+  maxDrawdown: number; drawdownType: string; dailyLossLimit: number | null;
+  consistencyPct: number | null; verifiedOn: string | null;
+}
+
+const selectCls = "h-8 px-2 text-xs text-t1 rounded-[2px] bg-s3 outline-none";
+const selectStyle = { border: "1px solid rgba(255,255,255,0.07)" } as const;
+
+function RailConfig() {
+  const [presets, setPresets] = useState<RulePresetLite[]>([]);
+  const [current, setCurrent] = useState<RuleProfileLite | null>(null);
+  const [accounts, setAccounts] = useState<string[]>([]);
+  const [account, setAccount] = useState<string>("");
+  const [firm, setFirm] = useState("");
+  const [presetId, setPresetId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/account/rules").then(r => r.json()).then(d => {
+      setPresets(d.presets ?? []);
+      setAccounts(d.accounts ?? []);
+      setAccount(d.account ?? "");
+      setCurrent(d.current ?? null);
+      if (d.current?.firm) setFirm(d.current.firm);
+    }).catch(() => {});
+  }, []);
+
+  const firms = Array.from(new Set(presets.map(p => p.firm)));
+  const plansForFirm = presets.filter(p => p.firm === firm);
+
+  useEffect(() => {
+    if (firm && plansForFirm.length && !plansForFirm.some(p => p.id === presetId)) {
+      setPresetId(plansForFirm[0].id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firm, presets]);
+
+  async function save() {
+    if (!account || !presetId) return;
+    setSaving(true);
+    const res = await fetch("/api/account/rules", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account, presetId }),
+    });
+    setSaving(false);
+    if (res.ok) { const d = await res.json(); setCurrent(d.current); setSaved(true); setTimeout(() => setSaved(false), 2000); }
+  }
+
+  return (
+    <>
+      <SectionLabel>Prop account · RAIL</SectionLabel>
+      {accounts.length === 0 ? (
+        <p className="text-2xs text-t4 py-2 leading-relaxed">
+          No accounts yet — connect your broker and place a trade, then choose your firm here.
+        </p>
+      ) : (
+        <div className="space-y-2.5 py-1">
+          <div className="flex gap-2 flex-wrap">
+            {accounts.length > 1 && (
+              <select value={account} onChange={e => setAccount(e.target.value)} className={selectCls} style={selectStyle}>
+                {accounts.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            )}
+            <select value={firm} onChange={e => setFirm(e.target.value)} className={selectCls} style={selectStyle}>
+              <option value="">Select firm…</option>
+              {firms.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+            <select value={presetId} onChange={e => setPresetId(e.target.value)} className={selectCls} style={selectStyle} disabled={!firm}>
+              {plansForFirm.map(p => <option key={p.id} value={p.id}>{p.planLabel}</option>)}
+            </select>
+            <button onClick={save} disabled={!account || !presetId || saving}
+              className="h-8 px-3 text-2xs font-medium rounded-[2px] transition-all disabled:opacity-40"
+              style={{ background: saved ? "rgba(44,196,164,0.12)" : "rgba(232,228,220,0.92)", color: saved ? "#2CC4A4" : "rgb(25,24,22)", border: "none" }}>
+              {saved ? "Saved" : saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+
+          {current && (
+            <div className="text-2xs text-t3 leading-relaxed py-1.5 px-2.5 rounded-[2px]"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span className="text-t2">{current.firm} {current.planLabel}</span>
+              {" · "}DD {usd(current.maxDrawdown)} ({current.drawdownType.replace("trailing_", "trail ")})
+              {" · "}Target {usd(current.profitTarget)}
+              {" · "}Daily {usd(current.dailyLossLimit)}
+              {current.consistencyPct != null && <> · Consistency {Math.round(current.consistencyPct * 100)}%</>}
+              {current.verifiedOn && (
+                <div className="text-t4 mt-1">Rules as of {current.verifiedOn} — confirm against your firm’s current rulebook.</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Live-data ingest tokens (browser extension producer) ──────────────────────
+interface TokenRow {
+  id: string; token_prefix: string; label: string | null;
+  created_at: string; last_used_at: string | null; revoked_at: string | null;
+}
+
+function IngestTokens() {
+  const [tokens, setTokens] = useState<TokenRow[]>([]);
+  const [fresh, setFresh] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [minting, setMinting] = useState(false);
+
+  const load = () =>
+    fetch("/api/account/ingest-tokens").then(r => r.json()).then(d => setTokens(d.tokens ?? [])).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  async function mint() {
+    setMinting(true);
+    const res = await fetch("/api/account/ingest-tokens", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: "Browser extension" }),
+    });
+    setMinting(false);
+    if (res.ok) { const d = await res.json(); setFresh(d.token); load(); }
+  }
+  async function revoke(id: string) {
+    await fetch(`/api/account/ingest-tokens?id=${id}`, { method: "DELETE" });
+    load();
+  }
+  function copy() {
+    if (!fresh) return;
+    navigator.clipboard.writeText(fresh);
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  }
+
+  const active = tokens.filter(t => !t.revoked_at);
+
+  return (
+    <>
+      <SectionLabel>Live-data token</SectionLabel>
+      <p className="text-2xs text-t4 leading-relaxed">
+        Paste into the Axiem extension so it can stream your live open P&amp;L into the RAIL.
+      </p>
+
+      {fresh && (
+        <div className="mt-2 space-y-1.5">
+          <div className="text-2xs text-[#C8A84B]">Copy this now — it won’t be shown again.</div>
+          <div className="flex gap-2">
+            <div className="flex-1 px-2.5 py-2 rounded-[2px] font-mono text-[10px] text-t2 select-all break-all"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+              {fresh}
+            </div>
+            <button onClick={copy} className="px-3 text-2xs rounded-[2px] shrink-0 transition-all"
+              style={{ border: "1px solid rgba(255,255,255,0.07)", color: copied ? "#2CC4A4" : "rgb(var(--t3))" }}>
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-2.5">
+        <button onClick={mint} disabled={minting}
+          className="h-8 px-3 text-2xs font-medium rounded-[2px] transition-all disabled:opacity-40"
+          style={{ border: "1px solid rgba(255,255,255,0.07)", color: "rgb(136 132 128)" }}>
+          {minting ? "Generating…" : "Generate token"}
+        </button>
+      </div>
+
+      {active.length > 0 && (
+        <div className="mt-3 space-y-0">
+          {active.map(t => (
+            <div key={t.id} className="flex items-center gap-3 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              <span className="font-mono text-[10px] text-t3">{t.token_prefix}…</span>
+              <span className="text-2xs text-t4 flex-1">{t.label ?? "token"} · {t.last_used_at ? `used ${timeAgo(t.last_used_at)}` : "never used"}</span>
+              <button onClick={() => revoke(t.id)} className="text-2xs text-t4 hover:text-[#E8724A] transition-colors">Revoke</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 interface TradovateProp {
   state: ConnectionState;
   recentFills?: Execution[];
@@ -337,6 +527,12 @@ export function Settings({ onOpenSub, tradovate }: { onOpenSub: () => void; trad
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── Prop account (RAIL) + live-data token ── */}
+        <div className="mt-2 max-w-[420px]">
+          <RailConfig />
+          <IngestTokens />
         </div>
 
         {/* ── Broker fill feed ── */}
