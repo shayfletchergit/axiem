@@ -9,6 +9,10 @@ import type {
   ReconciliationResult,
   Execution,
 } from "@/lib/broker/types";
+import type { CompactRail } from "@/lib/realtime/railPubsub";
+
+/** Latest live RAIL state pushed over SSE (~250 ms cadence). */
+export interface LiveRail { account: string; rail: CompactRail; ts: number }
 
 export type { ConnectionState, TradovateEnv };
 
@@ -24,6 +28,7 @@ export function useConnectionManager(opts: UseConnectionManagerOptions = {}) {
   optsRef.current = opts;
 
   const [recentFills, setRecentFills] = useState<Execution[]>([]);
+  const [liveRail, setLiveRail] = useState<LiveRail | null>(null);
 
   const [state, setState] = useState<ConnectionState>({
     status: "disconnected",
@@ -60,6 +65,8 @@ export function useConnectionManager(opts: UseConnectionManagerOptions = {}) {
         if (msg.type === "execution" && msg.execution) {
           mgr.injectExecution(msg.execution);
           setRecentFills((prev) => [msg.execution as Execution, ...prev].slice(0, 30));
+        } else if (msg.type === "rail" && msg.rail) {
+          setLiveRail({ account: msg.account as string, rail: msg.rail as CompactRail, ts: msg.ts as number });
         }
       } catch {}
     };
@@ -85,5 +92,5 @@ export function useConnectionManager(opts: UseConnectionManagerOptions = {}) {
 
   const disconnect = useCallback(() => managerRef.current!.disconnect(), []);
 
-  return { state, recentFills, connectWithCredentials, connectWithToken, disconnect };
+  return { state, recentFills, liveRail, connectWithCredentials, connectWithToken, disconnect };
 }

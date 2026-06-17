@@ -14,6 +14,7 @@ import type { TrustedLiveReport } from "@/lib/agame/trust";
 import type { SystemState } from "./systemState";
 import type { WatermarkState } from "./watermark";
 import type { RuntimeMetrics } from "./observability";
+import type { RailState, Heartbeat } from "@/lib/rules/types";
 import { wrapSafe, type SafeLiveReport, type SafetyState } from "./safetyGuard";
 
 export interface DashboardSnapshot {
@@ -32,6 +33,8 @@ export interface DashboardSnapshot {
     trust:       number;        // 0–1 (presentation map of safety state)
     dataQuality: number;        // 0–1 (freshness × overall signal quality)
   };
+  rail: RailState | null;       // account-survival state; null until a rule profile is set
+  heartbeat: Heartbeat;         // unified state = max(behavioural, account) severity
   debug?: {
     watermark: string | null;
     metrics:   RuntimeMetrics;
@@ -48,6 +51,8 @@ export interface DashboardInput {
   metrics?:     RuntimeMetrics;
   includeDebug?: boolean;
   now?:         number;
+  rail?:        RailState | null;
+  heartbeat?:   Heartbeat;
 }
 
 /**
@@ -85,6 +90,8 @@ export function buildDashboardSnapshot(input: DashboardInput): DashboardSnapshot
       trust:       trustConfidence(safe.safety),
       dataQuality: dataQuality(report, staleness),
     },
+    rail:      input.rail ?? null,
+    heartbeat: input.heartbeat ?? "CALM",
   };
 
   if (input.includeDebug) {
