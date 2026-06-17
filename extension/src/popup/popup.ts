@@ -1,15 +1,19 @@
-interface Settings {
+interface PopupSettings {
   axiemUrl: string;
   webhookSecret: string;
   env: "demo" | "live";
   enabled: boolean;
+  ingestToken: string;
+  railAccount: string;
 }
 
-const DEFAULT: Settings = {
+const DEFAULT: PopupSettings = {
   axiemUrl: "http://localhost:3000",
   webhookSecret: "axiem-dev-secret-change-in-production",
   env: "demo",
   enabled: true,
+  ingestToken: "",
+  railAccount: "",
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
@@ -18,6 +22,8 @@ const label      = document.getElementById("statusLabel")!;
 const syncLabel  = document.getElementById("syncLabel")!;
 const axiemUrl   = document.getElementById("axiemUrl") as HTMLInputElement;
 const secret     = document.getElementById("webhookSecret") as HTMLInputElement;
+const railAccount = document.getElementById("railAccount") as HTMLInputElement;
+const ingestToken = document.getElementById("ingestToken") as HTMLInputElement;
 const envDemo    = document.getElementById("envDemo") as HTMLButtonElement;
 const envLive    = document.getElementById("envLive") as HTMLButtonElement;
 const saveBtn    = document.getElementById("saveBtn") as HTMLButtonElement;
@@ -27,9 +33,11 @@ let selectedEnv: "demo" | "live" = "demo";
 
 // ── Load saved settings ───────────────────────────────────────────────────
 chrome.storage.sync.get("settings", (data) => {
-  const s: Settings = { ...DEFAULT, ...(data.settings ?? {}) };
+  const s: PopupSettings = { ...DEFAULT, ...(data.settings ?? {}) };
   axiemUrl.value = s.axiemUrl;
   secret.value   = s.webhookSecret;
+  railAccount.value = s.railAccount;
+  ingestToken.value = s.ingestToken;
   setEnv(s.env);
 });
 
@@ -66,11 +74,13 @@ envLive.addEventListener("click", () => setEnv("live"));
 
 // ── Save ──────────────────────────────────────────────────────────────────
 saveBtn.addEventListener("click", () => {
-  const settings: Settings = {
+  const settings: PopupSettings = {
     axiemUrl: axiemUrl.value.trim().replace(/\/$/, ""),
     webhookSecret: secret.value.trim(),
     env: selectedEnv,
     enabled: true,
+    railAccount: railAccount.value.trim(),
+    ingestToken: ingestToken.value.trim(),
   };
   chrome.storage.sync.set({ settings }, () => {
     saveBtn.textContent = "Saved ✓";

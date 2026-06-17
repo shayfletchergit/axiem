@@ -19,10 +19,15 @@
               d?: { entity?: unknown };
             }>;
             for (const f of frames) {
-              if (f.e === "props" && (f.d as Record<string, unknown>)?.entityType === "fill") {
-                const entity = (f.d as Record<string, unknown>).entity;
-                console.log("[Axiem] Fill intercepted:", entity);
-                window.postMessage({ __axiem: true, fill: entity }, "*");
+              if (f.e !== "props") continue;
+              const d = f.d as Record<string, unknown> | undefined;
+              const et = d?.entityType as string | undefined;
+              if (et === "fill") {
+                console.log("[Axiem] Fill intercepted:", d!.entity);
+                window.postMessage({ __axiem: true, fill: d!.entity }, "*");
+              } else if (et && /cashbalance|position|margin/i.test(et)) {
+                // Candidate open-P&L frame → background extracts the field (verify per platform).
+                window.postMessage({ __axiem: true, pnl: d!.entity, entityType: et }, "*");
               }
             }
           } catch (e) {
