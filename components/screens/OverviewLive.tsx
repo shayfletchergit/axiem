@@ -13,6 +13,7 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import type { DashboardSnapshot } from "@/lib/runtime/dashboardContract";
+import type { RailState } from "@/lib/rules/types";
 import type { Screen } from "@/lib/types";
 import { type AtomMode } from "@/components/hud/AxiemAtom";
 
@@ -83,6 +84,54 @@ function useDashboard(account?: string) {
   }, [account]);
   useEffect(() => { void load(); const id = setInterval(() => void load(), POLL_MS); return () => clearInterval(id); }, [load]);
   return { resp, error, loading };
+}
+
+// ── RAIL: account-survival instrument ─────────────────────────────────────────
+const HB_COLOR: Record<string, string> = { CALM: C.ok, ELEVATED: C.warn, AGITATED: "#E0653C", CRITICAL: C.bad };
+const MONO = "'JetBrains Mono', monospace";
+const usd0 = (n: number) => (n < 0 ? "−" : "") + "$" + Math.round(Math.abs(n)).toLocaleString();
+
+function RailGauge({ rail, heartbeat, onConfigure }: { rail: RailState | null; heartbeat: string; onConfigure?: () => void }) {
+  if (!rail) {
+    return (
+      <div style={{ marginTop: 24 }}>
+        <div className="eyebrow">Rail · Account survival</div>
+        <button onClick={onConfigure}
+          style={{ marginTop: 10, fontFamily: MONO, fontSize: 11, letterSpacing: "0.06em", color: C.t2, background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer" }}>
+          Set your prop account →
+        </button>
+      </div>
+    );
+  }
+  const hb = HB_COLOR[heartbeat] ?? C.t2;
+  const lo = rail.floor;
+  const hi = rail.target ?? Math.max(rail.peak, rail.equity);
+  const span = Math.max(1, hi - lo);
+  const eqFrac = clamp01((rail.equity - lo) / span);
+  const peakFrac = clamp01((rail.peak - lo) / span);
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="eyebrow">Rail · {rail.profile.firm} {rail.profile.planLabel}</div>
+        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", color: hb }}>PULSE {heartbeat}</span>
+      </div>
+      <div style={{ marginTop: 12, position: "relative", height: 8, borderRadius: 4, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${eqFrac * 100}%`, background: hb, opacity: 0.55, transition: "width 0.4s ease, background 0.4s ease" }} />
+        <div style={{ position: "absolute", left: `calc(${peakFrac * 100}% - 0.5px)`, top: 0, bottom: 0, width: 1, background: "rgba(255,255,255,0.35)" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 9, letterSpacing: "0.12em", color: C.t3 }}>
+        <span>BUST {usd0(rail.floor)}</span>
+        <span>{rail.target != null ? `PASS ${usd0(rail.target)}` : `PEAK ${usd0(rail.peak)}`}</span>
+      </div>
+      <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <span style={{ fontSize: 11, color: C.t3 }}>{rail.bindingRule === "daily" ? "Daily loss room" : "Buffer to bust"}</span>
+        <span style={{ fontFamily: MONO, fontSize: 19, fontWeight: 500, color: hb }}>{usd0(rail.bindingBuffer)}</span>
+      </div>
+      {rail.targetProgress != null && (
+        <div style={{ marginTop: 4, fontSize: 10, color: C.t3 }}>Target progress {Math.round(rail.targetProgress * 100)}%</div>
+      )}
+    </div>
+  );
 }
 
 export function OverviewLive({ onNavigate, current = "overview", userName = "" }: OverviewLiveProps) {
@@ -201,6 +250,8 @@ export function OverviewLive({ onNavigate, current = "overview", userName = "" }
             Connect your broker →
           </button>
         )}
+
+        {snap && <RailGauge rail={snap.rail} heartbeat={snap.heartbeat} onConfigure={() => onNavigate?.("settings")} />}
 
         <div style={{ marginTop: 24 }}>
           <div className="eyebrow">Risk Desk</div>
